@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0d">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Locked in</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<style>
+  :root{
+    --bg:#0b0b0d;
+    --fg:#f4f1ea;
+    --dim:#8a867d;
+    --off:#4a4741;
+    --accent:#ffb320;
+    --accent-2:#ff7a1a;
+    --bad:#ff5a4d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--fg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    min-height:100dvh;
+    display:flex;
+    justify-content:center;
+    padding:max(28px,env(safe-area-inset-top)) 24px max(28px,env(safe-area-inset-bottom));
+    user-select:none;-webkit-user-select:none;
+    touch-action:manipulation;
+    overflow:hidden;
+  }
+  /* háttérfény, csak ha az nap megvan */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(60% 42% at 50% 34%, rgba(255,160,30,.24), transparent 70%);
+    opacity:0;transition:opacity .9s ease;
+  }
+  body.done::before{opacity:1}
+
+  main{
+    position:relative;z-index:1;
+    flex:1;width:100%;max-width:460px;
+    display:flex;flex-direction:column;align-items:center;
+  }
+  .brand{
+    font-size:13px;font-weight:700;letter-spacing:.34em;text-transform:uppercase;
+    color:var(--dim);padding-top:6px;padding-left:.34em;
+  }
+  .hero{
+    flex:1;width:100%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:6px;
+  }
+
+  /* lakat */
+  .lockwrap{position:relative;width:132px;height:154px;margin-bottom:10px}
+  .lock{
+    width:100%;height:100%;overflow:visible;
+    color:var(--off);
+    transition:color .5s ease, filter .6s ease;
+  }
+  .lock .shackle{
+    fill:none;stroke:currentColor;stroke-width:10;stroke-linecap:round;
+    transform-origin:82px 60px;
+    transform:translateY(-6px) rotate(24deg);
+    transition:transform .55s cubic-bezier(.3,1.7,.5,1);
+  }
+  .lock .body{fill:currentColor}
+  .lock .hole{fill:var(--bg)}
+  body.done .lock{color:var(--accent);filter:drop-shadow(0 0 26px rgba(255,170,30,.55))}
+  body.done .lock .shackle{transform:none}
+  .lockwrap.thunk{animation:thunk .45s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes thunk{0%{transform:translateY(0)}35%{transform:translateY(9px)}100%{transform:translateY(0)}}
+
+  /* részecskék */
+  .burst{position:absolute;inset:0;pointer-events:none}
+  .burst i{
+    position:absolute;left:50%;top:58%;border-radius:50%;
+    animation:fly .85s cubic-bezier(.1,.7,.3,1) forwards;
+  }
+  @keyframes fly{
+    from{transform:translate(-50%,-50%) rotate(var(--a)) translateX(0) scale(1);opacity:1}
+    to{transform:translate(-50%,-50%) rotate(var(--a)) translateX(var(--d)) scale(0);opacity:0}
+  }
+
+  /* szám */
+  .count{
+    font-size:clamp(112px,40vw,230px);
+    font-weight:800;line-height:1;letter-spacing:-.045em;
+    font-variant-numeric:tabular-nums;
+    color:var(--fg);
+    transition:color .5s ease;
+  }
+  body.done .count{
+    background:linear-gradient(180deg,#ffd36a,var(--accent) 45%,var(--accent-2));
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+  }
+  .count.pop{animation:pop .7s cubic-bezier(.2,1.7,.4,1)}
+  @keyframes pop{0%{transform:scale(.55)}55%{transform:scale(1.16)}100%{transform:scale(1)}}
+  .unit{
+    font-size:22px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
+    padding-left:.12em;
+  }
+  .status{
+    margin-top:18px;min-height:2.6em;max-width:320px;text-align:center;
+    font-size:17px;line-height:1.35;color:var(--dim);
+  }
+  .status.bad{color:var(--bad)}
+  body.done .status{color:var(--fg)}
+
+  /* alsó rész */
+  footer{width:100%;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .timer{
+    font-size:15px;color:var(--dim);font-variant-numeric:tabular-nums;min-height:1.4em;text-align:center;
+  }
+  .timer.urgent{color:var(--bad)}
+  button{
+    width:100%;height:70px;border:0;border-radius:22px;
+    font:inherit;font-size:21px;font-weight:700;letter-spacing:.01em;
+    color:#1a1204;
+    background:linear-gradient(180deg,#ffc542,var(--accent) 55%,var(--accent-2));
+    box-shadow:0 10px 30px -8px rgba(255,140,20,.55), inset 0 1px 0 rgba(255,255,255,.35);
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .2s ease, background .3s ease, color .3s ease;
+  }
+  button:active:not(:disabled){transform:scale(.97)}
+  button:disabled{
+    cursor:default;color:var(--dim);background:#16161a;
+    box-shadow:inset 0 0 0 1px #24242a;
+  }
+
+  @media (max-height:640px){
+    .lockwrap{width:104px;height:122px}
+    .count{font-size:clamp(90px,32vw,170px)}
+    button{height:60px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">Locked in</div>
+
+  <section class="hero">
+    <div class="lockwrap" id="lockwrap">
+      <svg class="lock" viewBox="0 0 120 140" aria-hidden="true">
+        <path class="shackle" d="M38 62V44a22 22 0 0 1 44 0v18"/>
+        <rect class="body" x="18" y="60" width="84" height="68" rx="16"/>
+        <circle class="hole" cx="60" cy="88" r="8"/>
+        <rect class="hole" x="56" y="92" width="8" height="18" rx="4"/>
+      </svg>
+      <div class="burst" id="burst"></div>
+    </div>
+    <div class="count" id="count" aria-live="polite">0</div>
+    <div class="unit">nap</div>
+    <p class="status" id="status"></p>
+  </section>
+
+  <footer>
+    <p class="timer" id="timer"></p>
+    <button id="btn" type="button">Teljesítettem</button>
+  </footer>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var KEY = 'lockedin.v1';
+  var $ = function (id) { return document.getElementById(id); };
+  var reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- tárolás ---------- */
+  var state = load();
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var s = JSON.parse(raw);
+        if (s && typeof s.streak === 'number') {
+          return {
+            streak: Math.max(0, s.streak | 0),
+            last: typeof s.last === 'string' ? s.last : null,
+            lost: Math.max(0, (s.lost | 0))
+          };
+        }
+      }
+    } catch (e) {}
+    return { streak: 0, last: null, lost: 0 };
+  }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  /* ---------- dátum (helyi idő szerint) ---------- */
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
+  // hány nap telt el a-tól b-ig (egész szám, nyári időszámítás nem zavarja)
+  function daysBetween(a, b) {
+    var x = a.split('-').map(Number), y = b.split('-').map(Number);
+    return Math.round((Date.UTC(y[0], y[1] - 1, y[2]) - Date.UTC(x[0], x[1] - 1, x[2])) / 864e5);
+  }
+
+  /* ---------- logika ---------- */
+  // Ha kimaradt legalább egy teljes nap, a széria elvész. Nincs fagyasztás, nincs visszavonás.
+  function sync() {
+    if (state.last && state.streak > 0) {
+      if (daysBetween(state.last, todayStr()) >= 2) {
+        state.lost = state.streak;
+        state.streak = 0;
+        state.last = null;
+        save();
+      }
+    }
+  }
+
+  function isDoneToday() {
+    return !!state.last && daysBetween(state.last, todayStr()) <= 0;
+  }
+
+  function complete() {
+    sync();
+    if (isDoneToday()) return false;
+    state.streak += 1;
+    state.last = todayStr();
+    state.lost = 0;
+    save();
+    return true;
+  }
+
+  /* ---------- megjelenítés ---------- */
+  function setText(el, v) { if (el.textContent !== v) el.textContent = v; }
+
+  function msToMidnight() {
+    var n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1) - n;
+  }
+
+  function fmt(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000));
+    return pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s % 3600 / 60)) + ':' + pad(s % 60);
+  }
+
+  function render() {
+    sync();
+    var done = isDoneToday();
+    var status = $('status'), timer = $('timer'), btn = $('btn');
+
+    document.body.classList.toggle('done', done);
+    setText($('count'), String(state.streak));
+    btn.disabled = done;
+    setText(btn, done ? 'Mára megvan' : 'Teljesítettem');
+
+    var statusBad = false, statusText;
+    if (done) {
+      statusText = 'Ma megvan. Locked in.';
+    } else if (state.streak > 0) {
+      statusText = 'Ma még nincs meg. Ne veszítsd el.';
+    } else if (state.lost > 0) {
+      statusText = 'Elvesztettél egy ' + state.lost + ' napos szériát. Kezdd újra ma.';
+      statusBad = true;
+    } else {
+      statusText = 'Kezdd el ma.';
+    }
+    setText(status, statusText);
+    status.classList.toggle('bad', statusBad);
+
+    if (done) {
+      setText(timer, 'Holnap folytasd.');
+      timer.classList.remove('urgent');
+    } else {
+      var ms = msToMidnight();
+      setText(timer, 'Még ' + fmt(ms) + ' van hátra');
+      timer.classList.toggle('urgent', state.streak > 0 && ms < 2 * 3600 * 1000);
+    }
+  }
+
+  /* ---------- jutalom animáció ---------- */
+  function burst() {
+    var box = $('burst'), n = 26, colors = ['#ffb320', '#ff7a1a', '#f4f1ea'];
+    for (var i = 0; i < n; i++) {
+      var p = document.createElement('i');
+      var size = 5 + Math.random() * 6;
+      p.style.width = p.style.height = size + 'px';
+      p.style.background = colors[i % 3];
+      p.style.setProperty('--a', (360 / n * i + Math.random() * 12 - 6) + 'deg');
+      p.style.setProperty('--d', (70 + Math.random() * 90) + 'px');
+      box.appendChild(p);
+      (function (el) { setTimeout(function () { el.remove(); }, 950); })(p);
+    }
+  }
+
+  function celebrate() {
+    if (navigator.vibrate) { try { navigator.vibrate([25, 35, 70]); } catch (e) {} }
+    if (reduceMotion) return;
+    var c = $('count'), w = $('lockwrap');
+    c.classList.remove('pop'); w.classList.remove('thunk');
+    void c.offsetWidth; // újraindítja az animációt
+    c.classList.add('pop'); w.classList.add('thunk');
+    burst();
+  }
+
+  /* ---------- események ---------- */
+  $('btn').addEventListener('click', function () {
+    if (complete()) { render(); celebrate(); }
+  });
+
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) render(); });
+  window.addEventListener('pageshow', render);
+
+  render();
+  setInterval(render, 1000);
+
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>
